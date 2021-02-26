@@ -1,4 +1,7 @@
-var CACHE_STATIC_NAME = 'static-v20';
+importScripts('/src/js/idb.js');
+importScripts('/src/js/utility.js');
+
+var CACHE_STATIC_NAME = 'static-v24';
 var CACHE_DYNAMIC_NAME = 'dynamic';
 var STATIC_FILES = [
   '/',
@@ -6,6 +9,7 @@ var STATIC_FILES = [
   '/offline.html',
   '/src/js/app.js',
   '/src/js/feed.js',
+  '/src/js/idb.js',
   '/src/js/promise.js',
   '/src/js/fetch.js',
   '/src/js/material.min.js',
@@ -59,15 +63,17 @@ self.addEventListener('fetch', function(event) {
   var url = 'https://udemy-pwagram-70db0-default-rtdb.firebaseio.com/posts.json';
 
   if (event.request.url.indexOf(url) > -1) { // cache then network strategy
-    event.respondWith(
-      caches.open(CACHE_DYNAMIC_NAME)
-        .then(function(cache) {
-          return fetch(event.request)
-            .then(function(res) {
-              cache.put(event.request, res.clone());
-              return res;
-            })
-        })
+    event.respondWith(fetch(event.request)
+      .then(function(res) {
+        var clonedRes = res.clone();
+        clonedRes.json()
+          .then(function(data) {
+            for (var key in data) {
+              writeData('posts', data[key]);
+            }
+          });
+        return res;
+      })
     );
   } else if (isInArray(event.request.url, STATIC_FILES)) {
     event.respondWith(
